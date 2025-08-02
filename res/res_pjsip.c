@@ -634,9 +634,12 @@ int ast_sip_rewrite_uri_to_local(pjsip_sip_uri *uri, pjsip_tx_data *tdata) {
 		}
 	}
 
-	if (!ast_sockaddr_isnull(&transport_state->external_signaling_address)) {
-		pj_strdup2(tdata->pool, &uri->host, ast_sockaddr_stringify_host(&transport_state->external_signaling_address));
-	}
+       if (!ast_strlen_zero(transport->contact_rewrite_host)) {
+               pj_strdup2(tdata->pool, &uri->host, transport->contact_rewrite_host);
+       } else if (!ast_sockaddr_isnull(&transport_state->external_signaling_address)) {
+               pj_strdup2(tdata->pool, &uri->host,
+                       ast_sockaddr_stringify_host(&transport_state->external_signaling_address));
+       }
 
 	if (transport->external_signaling_port) {
 		uri->port = transport->external_signaling_port;

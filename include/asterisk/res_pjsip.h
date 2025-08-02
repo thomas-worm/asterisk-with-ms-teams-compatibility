@@ -232,11 +232,13 @@ struct ast_sip_transport {
 		AST_STRING_FIELD(password);
 		/*! External signaling address */
 		AST_STRING_FIELD(external_signaling_address);
-		/*! External media address */
-		AST_STRING_FIELD(external_media_address);
-		/*! Optional domain to use for messages if provided could not be found */
-		AST_STRING_FIELD(domain);
-		);
+               /*! External media address */
+               AST_STRING_FIELD(external_media_address);
+               /*! Static host for rewriting Contact/Via headers */
+               AST_STRING_FIELD(contact_rewrite_host);
+               /*! Optional domain to use for messages if provided could not be found */
+               AST_STRING_FIELD(domain);
+               );
 	/*! Type of transport */
 	enum ast_transport type;
 	/*!
