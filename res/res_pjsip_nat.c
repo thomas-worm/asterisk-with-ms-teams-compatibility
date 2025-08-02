@@ -32,6 +32,7 @@
 #include "asterisk/res_pjsip_session.h"
 #include "asterisk/module.h"
 #include "asterisk/acl.h"
+#include "asterisk/utils.h"
 
 /*! URI parameter for original host/port */
 #define AST_SIP_X_AST_ORIG_HOST "x-ast-orig-host"
@@ -351,8 +352,9 @@ static pj_status_t process_nat(pjsip_tx_data *tdata)
 		}
 	}
 
-	if (!ast_sockaddr_isnull(&transport_state->external_signaling_address)) {
-		pjsip_cseq_hdr *cseq = PJSIP_MSG_CSEQ_HDR(tdata->msg);
+       if (!ast_sockaddr_isnull(&transport_state->external_signaling_address) ||
+               !ast_strlen_zero(transport->contact_rewrite_host)) {
+               pjsip_cseq_hdr *cseq = PJSIP_MSG_CSEQ_HDR(tdata->msg);
 
 		/* Update the Contact header with the external address. We only do this if
 		 * a CSeq is not present (which should not happen - but we are extra safe),
@@ -367,23 +369,33 @@ static pj_status_t process_nat(pjsip_tx_data *tdata)
 			pjsip_method_cmp(&cseq->method, &pjsip_invite_method) ||
 			tdata->msg->line.status.code != PJSIP_SC_MOVED_TEMPORARILY )) {
 			/* We can only rewrite the URI when one is present */
-			if (uri || (uri = ast_sip_get_contact_sip_uri(tdata))) {
-				pj_strdup2(tdata->pool, &uri->host, ast_sockaddr_stringify_host(&transport_state->external_signaling_address));
-				if (transport->external_signaling_port) {
-					uri->port = transport->external_signaling_port;
-					ast_debug(4, "Re-wrote Contact URI port to %d\n", uri->port);
-				}
-			}
-		}
+                       if (uri || (uri = ast_sip_get_contact_sip_uri(tdata))) {
+                               if (!ast_strlen_zero(transport->contact_rewrite_host)) {
+                                       pj_strdup2(tdata->pool, &uri->host, transport->contact_rewrite_host);
+                               } else {
+                                       pj_strdup2(tdata->pool, &uri->host,
+                                               ast_sockaddr_stringify_host(&transport_state->external_signaling_address));
+                               }
+                               if (transport->external_signaling_port) {
+                                       uri->port = transport->external_signaling_port;
+                                       ast_debug(4, "Re-wrote Contact URI port to %d\n", uri->port);
+                               }
+                       }
+               }
 
-		/* Update the via header if relevant */
-		if ((tdata->msg->type == PJSIP_REQUEST_MSG) && (via || (via = pjsip_msg_find_hdr(tdata->msg, PJSIP_H_VIA, NULL)))) {
-			pj_strdup2(tdata->pool, &via->sent_by.host, ast_sockaddr_stringify_host(&transport_state->external_signaling_address));
-			if (transport->external_signaling_port) {
-				via->sent_by.port = transport->external_signaling_port;
-			}
-		}
-	}
+               /* Update the via header if relevant */
+               if ((tdata->msg->type == PJSIP_REQUEST_MSG) && (via || (via = pjsip_msg_find_hdr(tdata->msg, PJSIP_H_VIA, NULL)))) {
+                       if (!ast_strlen_zero(transport->contact_rewrite_host)) {
+                               pj_strdup2(tdata->pool, &via->sent_by.host, transport->contact_rewrite_host);
+                       } else {
+                               pj_strdup2(tdata->pool, &via->sent_by.host,
+                                       ast_sockaddr_stringify_host(&transport_state->external_signaling_address));
+                       }
+                       if (transport->external_signaling_port) {
+                               via->sent_by.port = transport->external_signaling_port;
+                       }
+               }
+       }
 
 	/* Invoke any additional hooks that may be registered */
 	if ((hooks = ast_sorcery_retrieve_by_fields(ast_sip_get_sorcery(), "nat_hook", AST_RETRIEVE_FLAG_MULTIPLE | AST_RETRIEVE_FLAG_ALL, NULL))) {

@@ -139,6 +139,7 @@
 ;local_net=192.0.2.0/24
 ;external_media_address=203.0.113.1
 ;external_signaling_address=203.0.113.1
+;contact_rewrite_host=pbx.example.com
 
 ; Basic IPv6 UDP transport
 ;
@@ -1194,6 +1195,7 @@
                                 ; "")
 ;external_signaling_port=0      ; External port for SIP signalling (default:
                                 ; "0")
+;contact_rewrite_host=          ; Static host for rewriting Contact/Via headers
 ;local_net=     ; Network to consider local used for NAT purposes (default: "")
 ;password=      ; Password required for transport (default: "")
 ;protocol=udp   ; Protocol to use for SIP traffic (default: "udp")
